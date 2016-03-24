@@ -52,8 +52,11 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.epoll.EpollSocketChannel;
 import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolConfig.Protocol;
@@ -212,7 +215,7 @@ public class ApnsClient<T extends ApnsPushNotification> {
      * @throws FileNotFoundException if the given PKCS#12 file could not be found
      * @throws IOException if any IO problem occurs while attempting to read the given PKCS#12 file
      */
-    public ApnsClient(final File p12File, final String password, final NioEventLoopGroup eventLoopGroup) throws SSLException, FileNotFoundException, IOException {
+    public ApnsClient(final File p12File, final String password, final EventLoopGroup eventLoopGroup) throws SSLException, FileNotFoundException, IOException {
         this(ApnsClient.getSslContextWithP12File(p12File, password), eventLoopGroup);
     }
 
@@ -254,7 +257,7 @@ public class ApnsClient<T extends ApnsPushNotification> {
      * @throws SSLException if the given PKCS#12 data could not be loaded or if any other SSL-related problem arises
      * when constructing the context
      */
-    public ApnsClient(final InputStream p12InputStream, final String password, final NioEventLoopGroup eventLoopGroup) throws SSLException {
+    public ApnsClient(final InputStream p12InputStream, final String password, final EventLoopGroup eventLoopGroup) throws SSLException {
         this(ApnsClient.getSslContextWithP12InputStream(p12InputStream, password), eventLoopGroup);
     }
 
@@ -296,7 +299,7 @@ public class ApnsClient<T extends ApnsPushNotification> {
      * @throws SSLException if the given key or certificate could not be loaded or if any other SSL-related problem
      * arises when constructing the context
      */
-    public ApnsClient(final X509Certificate certificate, final PrivateKey privateKey, final String privateKeyPassword, final NioEventLoopGroup eventLoopGroup) throws SSLException {
+    public ApnsClient(final X509Certificate certificate, final PrivateKey privateKey, final String privateKeyPassword, final EventLoopGroup eventLoopGroup) throws SSLException {
         this(ApnsClient.getSslContextWithCertificateAndPrivateKey(certificate, privateKey, privateKeyPassword), eventLoopGroup);
     }
 
@@ -360,7 +363,7 @@ public class ApnsClient<T extends ApnsPushNotification> {
                                 ApplicationProtocolNames.HTTP_2));
     }
 
-    protected ApnsClient(final SslContext sslContext, final NioEventLoopGroup eventLoopGroup) {
+    protected ApnsClient(final SslContext sslContext, final EventLoopGroup eventLoopGroup) {
         this.bootstrap = new Bootstrap();
 
         if (eventLoopGroup != null) {
@@ -371,7 +374,7 @@ public class ApnsClient<T extends ApnsPushNotification> {
             this.shouldShutDownEventLoopGroup = true;
         }
 
-        this.bootstrap.channel(NioSocketChannel.class);
+        this.bootstrap.channel((eventLoopGroup instanceof EpollEventLoopGroup) ? EpollSocketChannel.class : NioSocketChannel.class);
         this.bootstrap.option(ChannelOption.TCP_NODELAY, true);
         this.bootstrap.handler(new ChannelInitializer<SocketChannel>() {
 
